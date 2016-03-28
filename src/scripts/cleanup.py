@@ -2,6 +2,7 @@ from __future__ import print_function
 from pdb import set_trace as stop
 import pandas as pd
 import os
+import argparse
 import logging
 logging.basicConfig()
 
@@ -36,31 +37,39 @@ def downloadRun(run, myAPI):
         page += 1
         pageFiles = run.getFiles(myAPI, QueryParameters.QueryParameters({'Limit':1024, 'Offset':int(1024*page)}))
 
-def downloadProjectFastq(project, myAPI, samples=[], skipPresent=False, qp=QueryParameters.QueryParameters({'Limit':1024})):
+def downloadProjectFastq(project, myAPI, dryRun, samples=[], force=False, qp=QueryParameters.QueryParameters({'Limit':1024})):
     '''
     uncomment the bits about makedirs and downloadFile to "arm" the download
     '''
+    totalSize = 0
     if not samples:
         samples = project.getSamples(myAPI, qp)
     for sample in samples:
         fns = sample.getFiles(myAPI, qp)
         for fn in fns:
+            totalSize += fn.__dict__['Size']
+            if dryRun:
+                continue
             savePath = str(project).replace(" ","_") + "/" + pathFromFile(fn, myAPI)
             if not os.path.exists(savePath):
                 os.makedirs(savePath)
-            while not skipPresent and os.path.exists(savePath + fn.Name):
+            while force and os.path.exists(savePath + fn.Name):
                 # if the path exists, append this string to the end to avoid overwriting
                 counter = 1
                 fn.Name = os.path.basename(fn.Path) + "." + str(counter)
                 counter += 1 
-            if skipPresent and os.path.exists(savePath + fn.Name):
+            if not force and os.path.exists(savePath + fn.Name):
                 print("already have " + savePath + fn.Name + ". Skipping...")
                 continue
             else:
                 print(os.path.join(savePath, fn.Name))
                 fn.downloadFile(myAPI, savePath)
+    print( humanFormat(totalSize) + '\t' + str(project) )
+    return totalSize
 
-def downloadProjectBam(project, myAPI, samples=[], skipPresent=False, qp=QueryParameters.QueryParameters({'Limit':1024})):
+
+def downloadProjectBam(project, myAPI, dryRun, samples=[], force=False, qp=QueryParameters.QueryParameters({'Limit':1024})):
+    totalSize = 0
     results = project.getAppResults(myAPI, qp)
     for result in results:
         bams = [ x for x in result.getFiles(myAPI, qp) if "bam" in str(x) ]
@@ -72,20 +81,25 @@ def downloadProjectBam(project, myAPI, samples=[], skipPresent=False, qp=QueryPa
             print("\n\nuser picked particular samples, but this isn't coded in yet\n")
             stop()
         for fn in bams:
+            totalSize += fn.__dict__['Size']
+            if dryRun:
+                continue
             savePath = str(project).replace(" ","_") + "/" + pathFromFile(fn, myAPI)
             if not os.path.exists(savePath):
                 os.makedirs(savePath)
-            while not skipPresent and os.path.exists(savePath + fn.Name):
+            while force and os.path.exists(savePath + fn.Name):
                 # if the path exists, append this string to the end to avoid overwriting
                 counter = 1
                 fn.Name = os.path.basename(fn.Path) + "." + str(counter)
                 counter += 1 
             print(os.path.join(savePath, fn.Name))
-            if skipPresent and os.path.exists(savePath + fn.Name):
+            if not force and os.path.exists(savePath + fn.Name):
                 print("already have " + savePath + "/" + fn.Name + ". Skipping...")
                 continue
             else:
                 fn.downloadFile(myAPI, savePath)
+    print( humanFormat(totalSize) + '\t' + str(project) )
+    return totalSize
 
 def writeSummaryExcel(runs, projects):
     # write summary excel for pearlly
@@ -180,7 +194,7 @@ def pickSomething(selectionType, potentialSelectionsList):
     return outList
 
 
-def CLI(myAPI, projects, runs):
+def CLI(myAPI, inProjects, runs, dryRun, force):
     '''
     command line interface with the program
     allow user to select runs, projects, and/or fastq/bam files
@@ -188,13 +202,14 @@ def CLI(myAPI, projects, runs):
     
     #print("[p]\tprojects".format(1))
     #print("[r]\truns".format(2))
+    TotalSize = 0
     qp = QueryParameters.QueryParameters({'Limit':1024})
     scope = raw_input("select projects [p], samples [s], or runs [r]: " )
     while scope not in ['p', 'r', 's']:
         print("invalid selection")
         scope = raw_input("select projects [p], samples [s], or runs [r]: ")
     if scope == 'p' or scope == 's':
-        projects = pickSomething("project(s)", projects)
+        projects = pickSomething("project(s)", inProjects)
         '''
         projDict = {}
         for i, project in enumerate(projects):
@@ -214,21 +229,23 @@ def CLI(myAPI, projects, runs):
         if filetype == "b":
             if scope == 'p':
                 for project in projects:
-                    downloadProjectBam(project , myAPI)
+                    TotalSize += downloadProjectBam(project , myAPI, dryRun, force=force)
             elif scope == 's':
                 # select sample(s)
                 for project in projects:
                     samples = pickSomething("sample(s)", project.getSamples(myAPI, qp))
-                    downloadProjectBam(project, myAPI, samples=samples)
+                    TotalSize += downloadProjectBam(project, myAPI, dryRun, force=force, samples=samples)
         elif filetype == "f":
             if scope == 'p':
                 for project in projects:
-                    downloadProjectFastq(project , myAPI, skipPresent=True)
+                    TotalSize += downloadProjectFastq(project , myAPI, dryRun, force=force)
             elif scope == 's':
                 # select sample(s)
                 for project in projects:
                     samples = pickSomething("sample(s)", project.getSamples(myAPI, qp))
-                    downloadProjectBam(project, myAPI, samples=samples)
+                    TotalSize += downloadProjectBam(project, myAPI, dryRun, force=force, samples=samples)
+        if len(projects) > 1:
+            print(humanFormat(TotalSize) + "\tTotal")
 
 
     if scope == 'r':
@@ -239,19 +256,23 @@ def CLI(myAPI, projects, runs):
             print("invalid selection")
             finished = raw_input("finished? (y/n): ")
     if finished == "n":
-        CLI(myAPI, projects, runs)
+        CLI(myAPI, inProjects, runs, dryRun, force)
 
 
     
 def main():
-    myAPI = BaseSpaceAPI(profile='DEFAULT')
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-p', '--profile', default="DEFAULT", help="the .basespacepy.cfg profile to load")
+    parser.add_argument('-d', '--dry', action='store_true', default=False, help="dry run; return size of selected items")
+    parser.add_argument('-f', '--force', action='store_true', default=False, help="force overwrite; otherwise cat counters on new filenames)
+    args = parser.parse_args()
+    myAPI = BaseSpaceAPI(profile=args.profile)
     user = myAPI.getUserById('current')
     qp = QueryParameters.QueryParameters({'Limit':1024})
 
     projects = user.getProjects(myAPI, qp)
     runs = user.getRuns(myAPI, qp)
-
-    CLI(myAPI, projects, runs )
+    CLI(myAPI, projects, runs, args.dry, args.force )
     exit()
     '''
     # save all sample sheets associated with missing runs
