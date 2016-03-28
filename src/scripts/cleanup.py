@@ -264,7 +264,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-p', '--profile', default="DEFAULT", help="the .basespacepy.cfg profile to load")
     parser.add_argument('-d', '--dry', action='store_true', default=False, help="dry run; return size of selected items")
-    parser.add_argument('-f', '--force', action='store_true', default=False, help="force overwrite; otherwise cat counters on new filenames)
+    parser.add_argument('-f', '--force', action='store_true', default=False, help="force overwrite; otherwise cat counters on new filenames")
     args = parser.parse_args()
     myAPI = BaseSpaceAPI(profile=args.profile)
     user = myAPI.getUserById('current')
