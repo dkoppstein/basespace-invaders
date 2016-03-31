@@ -37,6 +37,13 @@ def downloadRun(run, myAPI):
         page += 1
         pageFiles = run.getFiles(myAPI, QueryParameters.QueryParameters({'Limit':1024, 'Offset':int(1024*page)}))
 
+def stringSampsToSampSamps(project, myAPI, samples, qp=QueryParameters.QueryParameters({'Limit':1024})):
+    '''
+    convert a list of strings to a list of sample objects 
+    '''
+    return [x for x in project.getSamples(myAPI, qp) if str(x) in samples]
+    
+
 def downloadProjectFastq(project, myAPI, dryRun, samples=[], force=False, qp=QueryParameters.QueryParameters({'Limit':1024})):
     '''
     uncomment the bits about makedirs and downloadFile to "arm" the download
@@ -44,6 +51,9 @@ def downloadProjectFastq(project, myAPI, dryRun, samples=[], force=False, qp=Que
     totalSize = 0
     if not samples:
         samples = project.getSamples(myAPI, qp)
+    elif samples and type(samples[0]) == str: 
+        #convert samples strings to sample objects
+        samples = stringSampsToSampSamps(project, myAPI, samples)
     for sample in samples:
         fns = sample.getFiles(myAPI, qp)
         for fn in fns:
@@ -74,6 +84,8 @@ def downloadProjectBam(project, myAPI, dryRun, samples=[], force=False, qp=Query
     for result in results:
         bams = [ x for x in result.getFiles(myAPI, qp) if "bam" in str(x) ]
         if samples:
+            if type(samples[0]) == str:
+                samples = stringSampsToSampSamps(project, myAPI, samples)
             # user picked particular samples
             # subset the list of bams accordingly
             #bams = [x for x in bams if ]
@@ -265,6 +277,8 @@ def main():
     parser.add_argument('-p', '--profile', default="DEFAULT", help="the .basespacepy.cfg profile to load")
     parser.add_argument('-d', '--dry', action='store_true', default=False, help="dry run; return size of selected items")
     parser.add_argument('-f', '--force', action='store_true', default=False, help="force overwrite; otherwise cat counters on new filenames")
+    parser.add_argument('-i', '--input', required=False, help="tab delimited file of project...sample to download ")
+
     args = parser.parse_args()
     myAPI = BaseSpaceAPI(profile=args.profile)
     user = myAPI.getUserById('current')
@@ -272,7 +286,15 @@ def main():
 
     projects = user.getProjects(myAPI, qp)
     runs = user.getRuns(myAPI, qp)
-    CLI(myAPI, projects, runs, args.dry, args.force )
+    if not args.input:
+        CLI(myAPI, projects, runs, args.dry, args.force )
+    else:
+        userInputs = pd.DataFrame.from_csv(args.input, sep='\t', index_col=0,header=None)
+        userProjNames = userInputs.index.unique()
+        userProjs = [proj for proj in projects if str(proj) in userProjNames]
+        for userProj in userProjs:
+            samples = [samp for samp in userInputs.loc[str(userProj),1].values]
+            downloadProjectFastq(userProj, myAPI, args.dry, force=args.force, samples=samples)
     exit()
     '''
     # save all sample sheets associated with missing runs
