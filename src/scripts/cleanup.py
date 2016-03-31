@@ -1,9 +1,9 @@
 from __future__ import print_function
 from pdb import set_trace as stop
-import pandas as pd
 import os
 import argparse
 import logging
+from collections import defaultdict
 logging.basicConfig()
 
 #BaseSpace API imports
@@ -57,8 +57,10 @@ def downloadProjectFastq(project, myAPI, dryRun, samples=[], force=False, qp=Que
     for sample in samples:
         fns = sample.getFiles(myAPI, qp)
         for fn in fns:
-            totalSize += fn.__dict__['Size']
+            thisSize = fn.__dict__['Size']
+            totalSize += thisSize
             if dryRun:
+                print(humanFormat(thisSize) + '\t' + fn.Name)
                 continue
             savePath = str(project).replace(" ","_") + "/" + pathFromFile(fn, myAPI)
             if not os.path.exists(savePath):
@@ -93,8 +95,10 @@ def downloadProjectBam(project, myAPI, dryRun, samples=[], force=False, qp=Query
             print("\n\nuser picked particular samples, but this isn't coded in yet\n")
             stop()
         for fn in bams:
-            totalSize += fn.__dict__['Size']
+            thisSize = fn.__dict__['Size']
+            totalSize += thisSize
             if dryRun:
+                print(humanFormat(thisSize) + '\t' + fn.Name)
                 continue
             savePath = str(project).replace(" ","_") + "/" + pathFromFile(fn, myAPI)
             if not os.path.exists(savePath):
@@ -289,11 +293,14 @@ def main():
     if not args.input:
         CLI(myAPI, projects, runs, args.dry, args.force )
     else:
-        userInputs = pd.DataFrame.from_csv(args.input, sep='\t', index_col=0,header=None)
-        userProjNames = userInputs.index.unique()
+        userInputs = defaultdict(list)
+        for line in open(args.input, 'r'):
+            things = line.split()
+            userInputs[things[0].strip()].append(things[1].strip())
+        userProjNames = userInputs.keys()
         userProjs = [proj for proj in projects if str(proj) in userProjNames]
         for userProj in userProjs:
-            samples = [samp for samp in userInputs.loc[str(userProj),1].values]
+            samples = userInputs[userProj]
             downloadProjectFastq(userProj, myAPI, args.dry, force=args.force, samples=samples)
     exit()
     '''
