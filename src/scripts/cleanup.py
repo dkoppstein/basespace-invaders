@@ -19,23 +19,33 @@ def pathFromFile(fn, myAPI):
     savePath = "/".join(savePath.split('/')[1:-1])
     return savePath
 
-def downloadRun(run, myAPI):
+def downloadRun(run, myAPI, dryRun, force=False):
     '''
     uncomment the bits about makedirs and downloadFile to "arm" the download
     '''
     page = 0
     pageFiles = run.getFiles(myAPI, QueryParameters.QueryParameters({'Limit':1024, 'Offset':int(1024*page)}))
+    totalSize = 0
     while len(pageFiles) >0:
         for fn in pageFiles:
             #if fn.startswith('s_') and (fn.endswith('.clocs') or fn.endswith('.bcl.gz')):
+            thisSize = fn.__dict__['Size']
+            totalSize += thisSize
+            if dryRun:
+                continue
             savePath = str(run) + "/" + pathFromFile(fn, myAPI)
-            if not os.path.exists(os.path.split(savePath)[0]):
+            if not os.path.exists(savePath):
                 #pass
-                os.makedirs(os.path.split(savePath)[0])
-            print(savePath)
-            fn.downloadFile(myAPI, savePath)
+                os.makedirs(savePath)
+            if not force and os.path.exists(savePath + fn.Name):
+                print("already have " + savePath + fn.Name + ". Skipping...")
+                continue
+            else:
+                fn.downloadFile(myAPI, savePath)
         page += 1
         pageFiles = run.getFiles(myAPI, QueryParameters.QueryParameters({'Limit':1024, 'Offset':int(1024*page)}))
+    print( humanFormat(totalSize) + '\t' + str(run) + '\t' + str(run.ExperimentName) ) 
+    return totalSize
 
 def stringSampsToSampSamps(project, myAPI, samples, qp=QueryParameters.QueryParameters({'Limit':1024})):
     '''
@@ -210,7 +220,7 @@ def pickSomething(selectionType, potentialSelectionsList):
     return outList
 
 
-def CLI(myAPI, inProjects, runs, dryRun, force):
+def CLI(myAPI, inProjects, inRuns, dryRun, force):
     '''
     command line interface with the program
     allow user to select runs, projects, and/or fastq/bam files
@@ -266,7 +276,11 @@ def CLI(myAPI, inProjects, runs, dryRun, force):
 
     if scope == 'r':
         #todo
-        pass
+        runs = pickSomething("run(s)", inRuns)
+        for run in runs:
+            TotalSize += downloadRun(run, myAPI, dryRun, force=force)
+        if len(runs) > 1:
+            print(humanFormat(totalSize) + "\tTotal")
     finished = raw_input("finished? (y/n): ")
     while finished not in ['y', 'n']:
             print("invalid selection")
