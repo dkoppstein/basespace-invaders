@@ -173,7 +173,7 @@ def humanFormat(num):
     if int(num/(1<<10)):
         return "{0:.2f}".format(float(num)/(1<<10)) + "KB"
     else:
-        return num
+        return str(num)
 
 def getFastqFromSampleList(project, samples, myAPI, qp):
     for sample in samples:
@@ -259,7 +259,7 @@ def CLI(myAPI, inProjects, runs, dryRun, force):
                 # select sample(s)
                 for project in projects:
                     samples = pickSomething("sample(s)", project.getSamples(myAPI, qp))
-                    TotalSize += downloadProjectBam(project, myAPI, dryRun, force=force, samples=samples)
+                    TotalSize += downloadProjectFastq(project, myAPI, dryRun, force=force, samples=samples)
         if len(projects) > 1:
             print(humanFormat(TotalSize) + "\tTotal")
 
