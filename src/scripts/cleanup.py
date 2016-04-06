@@ -26,6 +26,7 @@ def downloadRun(run, myAPI, dryRun, force=False):
     page = 0
     pageFiles = run.getFiles(myAPI, QueryParameters.QueryParameters({'Limit':1024, 'Offset':int(1024*page)}))
     totalSize = 0
+    # todo: insert regex matching to pull down only those required for demultiplex
     while len(pageFiles) >0:
         for fn in pageFiles:
             #if fn.startswith('s_') and (fn.endswith('.clocs') or fn.endswith('.bcl.gz')):
@@ -37,7 +38,7 @@ def downloadRun(run, myAPI, dryRun, force=False):
             if not os.path.exists(savePath):
                 #pass
                 os.makedirs(savePath)
-            if not force and os.path.exists(savePath + fn.Name):
+            if not force and os.path.exists(os.path.join(savePath, fn.Name)):
                 print("already have " + savePath + fn.Name + ". Skipping...")
                 continue
             else:
