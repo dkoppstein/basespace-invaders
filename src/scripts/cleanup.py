@@ -10,50 +10,73 @@ logging.basicConfig()
 from BaseSpacePy.api.BaseSpaceAPI import BaseSpaceAPI
 from BaseSpacePy.api.BaseSpaceAPI import QueryParameters
 
+#Aggregate of local utility functions
+from Util import *
+
+'''
+migrated to Util.py
 def pathFromFile(fn, myAPI):
-    '''
-    take a basespace file object and turn it into an appropriate path 
-    '''
+    #take a basespace file object and turn it into an appropriate path 
     url = fn.getFileS3metadata(myAPI)['url']
     savePath = url.split('amazonaws.com/')[1].split('?AWSA')[0]
     savePath = "/".join(savePath.split('/')[1:-1])
     return savePath
+'''
 
-def downloadRun(run, myAPI, dryRun, force=False):
+def downloadRun(run, myAPI, dryRun, files=[], force=False):
     '''
     uncomment the bits about makedirs and downloadFile to "arm" the download
     '''
+    # you can only pull 1024 items at once, so we have to loop over "pages" of items, 1024 at a time
+    # this is done by incrementing the offset by 1024 each time, so the next loop gets the next page
+    # the limit can be adjusted as long as the limit is equal to the offset 
     page = 0
     pageFiles = run.getFiles(myAPI, QueryParameters.QueryParameters({'Limit':1024, 'Offset':int(1024*page)}))
     totalSize = 0
+    #did the user select files?
+    fileSel = False
+    if files:
+        fileSel = True  
     # todo: insert regex matching to pull down only those required for demultiplex
     while len(pageFiles) >0:
         for fn in pageFiles:
-            #if fn.startswith('s_') and (fn.endswith('.clocs') or fn.endswith('.bcl.gz')):
+            if fileSel and fn.Name not in files:
+                # user selected some particular files, but this aint one of em 
+                continue
+            elif files and fn.Name in files:
+                # we found it! cut it from the list 
+                files.pop(files.index(fn.Name))           
             thisSize = fn.__dict__['Size']
             totalSize += thisSize
             if dryRun:
                 continue
             savePath = str(run) + "/" + pathFromFile(fn, myAPI)
             if not os.path.exists(savePath):
-                #pass
                 os.makedirs(savePath)
             if not force and os.path.exists(os.path.join(savePath, fn.Name)):
                 print("already have " + savePath + fn.Name + ". Skipping...")
                 continue
             else:
                 fn.downloadFile(myAPI, savePath)
+        if fileSel and len(files) == 0:
+            # user selected some file(s) and we found them all; return
+            break
         page += 1
         pageFiles = run.getFiles(myAPI, QueryParameters.QueryParameters({'Limit':1024, 'Offset':int(1024*page)}))
+    if files:
+        # files was user-defined, but didn't successfully pop all elements
+        # i.e. something was selected and never found
+        print("warning: could not find these selected files")
+        for fn in files:
+            print('\t' + fn)
     print( humanFormat(totalSize) + '\t' + str(run) + '\t' + str(run.ExperimentName) ) 
     return totalSize
-
+'''
+migrated to Util.py
 def stringSampsToSampSamps(project, myAPI, samples, qp=QueryParameters.QueryParameters({'Limit':1024})):
-    '''
-    convert a list of strings to a list of sample objects 
-    '''
+    #convert a list of strings to a list of sample objects 
     return [x for x in project.getSamples(myAPI, qp) if str(x) in samples]
-    
+'''    
 
 def downloadProjectFastq(project, myAPI, dryRun, samples=[], force=False, qp=QueryParameters.QueryParameters({'Limit':1024})):
     '''
@@ -144,6 +167,7 @@ def writeSummaryExcel(runs, projects):
 
 def downloadSampleSheet(run, myAPI):
     '''
+    DEPRICATED BY GENERALIZATION OF downloadRun
     download a sample sheet for a run 
     '''
     page = 0
@@ -161,6 +185,7 @@ def downloadSampleSheet(run, myAPI):
         page += 1
         pageFiles = run.getFiles(myAPI, QueryParameters.QueryParameters({'Limit':1024, 'Offset':int(1024*page)}))
 
+'''
 def getProjFilesFromMissingRuns():
     runsDF = pd.DataFrame(columns=['name','run'])
     projDF = pd.DataFrame(columns=['name','proj'])
@@ -173,7 +198,10 @@ def getProjFilesFromMissingRuns():
         if status == 'Complete':
             runsD['name'][count] = str()
             runsD['run'][count] = str(run)
+'''
 
+'''
+migrated to Util.py
 def humanFormat(num):
     if int(num/(1<<40)):
         return "{0:.2f}".format(float(num)/(1<<40)) + "TB"
@@ -185,6 +213,7 @@ def humanFormat(num):
         return "{0:.2f}".format(float(num)/(1<<10)) + "KB"
     else:
         return str(num)
+'''
 
 def getFastqFromSampleList(project, samples, myAPI, qp):
     for sample in samples:
@@ -201,6 +230,8 @@ def getFastqFromSampleList(project, samples, myAPI, qp):
             print(os.path.join(savePath, fn.Name))
             fn.downloadFile(myAPI, savePath)
 
+'''
+migrated to Util.py
 def pickSomething(selectionType, potentialSelectionsList):
     itemDict = {}
     for i, item in enumerate(potentialSelectionsList):
@@ -219,7 +250,7 @@ def pickSomething(selectionType, potentialSelectionsList):
                 continue
             outList.append(itemDict[int(picked)])
     return outList
-
+'''
 
 def CLI(myAPI, inProjects, inRuns, dryRun, force):
     '''
@@ -237,22 +268,11 @@ def CLI(myAPI, inProjects, inRuns, dryRun, force):
         scope = raw_input("select projects [p], samples [s], or runs [r]: ")
     if scope == 'p' or scope == 's':
         projects = pickSomething("project(s)", inProjects)
-        '''
-        projDict = {}
-        for i, project in enumerate(projects):
-            projDict[i] = project 
-        for i,project in projDict.items():
-            #stop()
-            print("[{0}]\t{1}".format(i, project))
-        selection = int(raw_input("select a project: "))
-        '''
-
         filetype = raw_input("bam [b] or fastq [f]: ")
         while filetype not in ['b', 'f']:
             print("invalid selection")
             filetype = raw_input("bam [b] or fastq [f]: ")
-        
-
+       
         if filetype == "b":
             if scope == 'p':
                 for project in projects:
@@ -276,7 +296,6 @@ def CLI(myAPI, inProjects, inRuns, dryRun, force):
 
 
     if scope == 'r':
-        #todo
         runs = pickSomething("run(s)", inRuns)
         for run in runs:
             TotalSize += downloadRun(run, myAPI, dryRun, force=force)
@@ -299,12 +318,13 @@ def main():
     parser.add_argument('-i', '--input', required=False, help="tab delimited file of project...sample to download ")
 
     args = parser.parse_args()
-    myAPI = BaseSpaceAPI(profile=args.profile)
+    myAPI = BaseSpaceAPI(profile=args.profile, timeout=500)
     user = myAPI.getUserById('current')
     qp = QueryParameters.QueryParameters({'Limit':1024})
 
     projects = user.getProjects(myAPI, qp)
     runs = user.getRuns(myAPI, qp)
+
     if not args.input:
         CLI(myAPI, projects, runs, args.dry, args.force )
     else:
@@ -317,42 +337,6 @@ def main():
         for userProj in userProjs:
             samples = userInputs[userProj]
             downloadProjectFastq(userProj, myAPI, args.dry, force=args.force, samples=samples)
-    exit()
-    '''
-    # save all sample sheets associated with missing runs
-    #   where the missing runs were identified outside of this script
-    missing = []
-    for line in open("missing","r"): 
-        name = line.strip()
-        missing.append([x for x in runs if str(x)==name][0])
-    for run in missing:
-        downloadSampleSheet(run, myAPI)
-    '''
-    downloadProjectBam(projects[-1],myAPI, qp)
-    stop()
-    pearllyEdit = '/home/OSUMC.EDU/krol06/Documents/Keepers_pearlly_full_proj_list.xlsx'
-    res = [str(x) for x in pd.read_excel(pearllyEdit,header=None,index_col=0).index]
-    keepers = []
-    for item in res:
-        for proj in projects:
-            if str(proj) == item:
-                keepers.append(proj)
-                break
-    TotTot = 0
-    interest = keepers
-    #interest = projects
-    for project in interest:
-        projTot = 0
-        for sample in project.getSamples(myAPI, qp):
-            #print(str(sample))
-            projTot += sample.__dict__['TotalSize']
-        TotTot += projTot
-        print("{0}\t{1}".format(humanFormat(projTot), str(project)))
-    print("{0}".format(humanFormat(TotTot)))
-    
-    
-
-    #downloadProject(projects[-1], myAPI)
 
 if __name__ == "__main__":
     main()
