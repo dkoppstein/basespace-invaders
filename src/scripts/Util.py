@@ -1,4 +1,6 @@
+from __future__ import print_function
 #BaseSpace API imports
+import BaseSpacePy
 from BaseSpacePy.api.BaseSpaceAPI import BaseSpaceAPI
 from BaseSpacePy.api.BaseSpaceAPI import QueryParameters
 
@@ -13,13 +15,32 @@ def pathFromFile(fn, myAPI):
     savePath = "/".join(savePath.split('/')[1:-1])
     return savePath
 
-def stringSampsToSampSamps(project, myAPI, samples, qp=QueryParameters.QueryParameters({'Limit':1024})):
+def stringsToBSObj(BSlist, USRlist):
     '''
-    input: basespace project object, basespace API instance, string list of sample identifiers, optional basespace query params object
-    output: list of basespace sample objects, from the given project, that matched the list of string identifiers
+    input: a list of basespace objects, and a list of string names to select on from that list
+    output: list of basespace objects, from the given list of objects, that matched the list of string identifiers
+    
+    Ex. [Proj1, Proj2, Proj3], ["Proj1", "Proj3"]
+    returns [Proj1, Proj3] as a list of basespace project class instances
     ''' 
-    return [x for x in project.getSamples(myAPI, qp) if str(x) in samples]
-
+    # just in case the user-list was a mix of string and basespace objects
+    outlist = []
+    toClean = []
+    for item in USRlist:
+        if type(item) in [BaseSpacePy.model.Sample.Sample, BaseSpacePy.model.Project.Project]:
+            # no need to clean this
+            outlist.append(item)
+        else:
+            # will need to convert this string to a basespace object
+            toClean.append(item)
+            
+    # readability > concision
+    # [outlist.append(item) for item in BSlist if str(item) in toClean]
+    for item in BSlist:
+        if str(item) in toClean:
+            outlist.append(item)
+    return outlist
+    
 def humanFormat(num):
     '''
     input: number of bytes as an int 
@@ -65,3 +86,8 @@ def pickSomething(selectionType, potentialSelectionsList):
                 continue
             outList.append(itemDict[int(picked)])
     return outList        
+    
+def warning(message):
+    print("WARNING!")
+    print(message)
+    print()
