@@ -29,7 +29,7 @@ def downloadProjectFastq(project, myAPI, dryRun, samples=[], force=False, qp=Que
             if not os.path.exists(savePath):
                 os.makedirs(savePath)
             pathToFn = os.path.join(savePath + fn.Name)
-            while force and os.path.exists(pathToFn, fn):
+            while os.path.exists(pathToFn):
                 # if the path exists, append this string to the end to avoid overwriting
                 counter = 1
                 fn.Name = os.path.basename(fn.Path) + "." + str(counter)
@@ -69,7 +69,7 @@ def downloadProjectBam(project, myAPI, dryRun, samples=[], force=False, qp=Query
             if not os.path.exists(savePath):
                 os.makedirs(savePath)
             pathToFn = os.path.join(savePath, fn.Name)
-            while force and fileExists(pathToFn, fn):
+            while fileExists(pathToFn):
                 # if the path exists, append this string to the end to avoid overwriting
                 counter = 1
                 fn.Name = os.path.basename(fn.Path) + "." + str(counter)
