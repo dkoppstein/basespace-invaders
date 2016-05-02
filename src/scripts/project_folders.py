@@ -20,7 +20,7 @@ def downloadProjectFastq(project, myAPI, dryRun, samples=[], force=False, qp=Que
         for fn in fns:
             thisSize = fn.__dict__['Size']
             # skip addition until we know this will be downloaded
-            #totalSize += thisSize
+            #totalSize += thisSize                       
             if dryRun:
                 totalSize += thisSize
                 print(humanFormat(thisSize) + '\t' + fn.Name)
@@ -28,16 +28,16 @@ def downloadProjectFastq(project, myAPI, dryRun, samples=[], force=False, qp=Que
             savePath = str(project).replace(" ","_") + "/" + pathFromFile(fn, myAPI)
             if not os.path.exists(savePath):
                 os.makedirs(savePath)
-            pathToFn = os.path.join(savePath + fn.Name)
-            while os.path.exists(pathToFn):
-                # if the path exists, append this string to the end to avoid overwriting
-                counter = 1
-                fn.Name = os.path.basename(fn.Path) + "." + str(counter)
-                counter += 1 
+            pathToFn = os.path.join(savePath, fn.Name)
             if not force and fileExists(pathToFn, fn):
                 print("already have " + savePath + fn.Name + ". Skipping...")
                 continue
             else:
+                while os.path.exists(os.path.join(savePath, fn.Name)):
+                    # if the path exists, append this string to the end to avoid overwriting
+                    counter = 1
+                    fn.Name = os.path.basename(fn.Path) + "." + str(counter)
+                    counter += 1 
                 totalSize += thisSize
                 print(os.path.join(savePath, fn.Name))
                 fn.downloadFile(myAPI, savePath)
@@ -69,7 +69,7 @@ def downloadProjectBam(project, myAPI, dryRun, samples=[], force=False, qp=Query
             if not os.path.exists(savePath):
                 os.makedirs(savePath)
             pathToFn = os.path.join(savePath, fn.Name)
-            while fileExists(pathToFn):
+            while fileExists(os.path.join(savePath, fn.Name)):
                 # if the path exists, append this string to the end to avoid overwriting
                 counter = 1
                 fn.Name = os.path.basename(fn.Path) + "." + str(counter)
