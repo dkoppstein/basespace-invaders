@@ -80,7 +80,7 @@ def pickSomething(selectionType, potentialSelectionsList):
     selection = raw_input("select a " + selectionType + " : ")
     if selection == "":
         # no selection assumes all selected
-        outList = itemDict.items()
+        outList = itemDict.values()
     else:
         outList = []
         for picked in selection.split():
