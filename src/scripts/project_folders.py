@@ -19,22 +19,26 @@ def downloadProjectFastq(project, myAPI, dryRun, samples=[], force=False, qp=Que
         fns = sample.getFiles(myAPI, qp)
         for fn in fns:
             thisSize = fn.__dict__['Size']
-            totalSize += thisSize
+            # skip addition until we know this will be downloaded
+            #totalSize += thisSize
             if dryRun:
+                totalSize += thisSize
                 print(humanFormat(thisSize) + '\t' + fn.Name)
                 continue
             savePath = str(project).replace(" ","_") + "/" + pathFromFile(fn, myAPI)
             if not os.path.exists(savePath):
                 os.makedirs(savePath)
-            while force and os.path.exists(savePath + fn.Name):
+            pathToFn = os.path.join(savePath + fn.Name)
+            while force and os.path.exists(pathToFn, fn):
                 # if the path exists, append this string to the end to avoid overwriting
                 counter = 1
                 fn.Name = os.path.basename(fn.Path) + "." + str(counter)
                 counter += 1 
-            if not force and os.path.exists(savePath + fn.Name):
+            if not force and fileExists(pathToFn, fn):
                 print("already have " + savePath + fn.Name + ". Skipping...")
                 continue
             else:
+                totalSize += thisSize
                 print(os.path.join(savePath, fn.Name))
                 fn.downloadFile(myAPI, savePath)
     print( humanFormat(totalSize) + '\t' + str(project) )
@@ -56,23 +60,26 @@ def downloadProjectBam(project, myAPI, dryRun, samples=[], force=False, qp=Query
             stop()
         for fn in bams:
             thisSize = fn.__dict__['Size']
-            totalSize += thisSize
+            # totalSize += thisSize
             if dryRun:
+                totalSize += thisSize
                 print(humanFormat(thisSize) + '\t' + fn.Name)
                 continue
             savePath = str(project).replace(" ","_") + "/" + pathFromFile(fn, myAPI)
             if not os.path.exists(savePath):
                 os.makedirs(savePath)
-            while force and os.path.exists(savePath + fn.Name):
+            pathToFn = os.path.join(savePath, fn.Name)
+            while force and fileExists(pathToFn, fn):
                 # if the path exists, append this string to the end to avoid overwriting
                 counter = 1
                 fn.Name = os.path.basename(fn.Path) + "." + str(counter)
                 counter += 1 
-            print(os.path.join(savePath, fn.Name))
-            if not force and os.path.exists(savePath + fn.Name):
+            print(pathToFn)
+            if not force and fileExists(pathToFn, fn):
                 print("already have " + savePath + "/" + fn.Name + ". Skipping...")
                 continue
             else:
+                totalSize += thisSize
                 fn.downloadFile(myAPI, savePath)
     print( humanFormat(totalSize) + '\t' + str(project) )
     return totalSize

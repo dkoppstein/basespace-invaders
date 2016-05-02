@@ -1,4 +1,7 @@
 from __future__ import print_function
+import os
+import glob
+from pdb import set_trace as stop
 #BaseSpace API imports
 import BaseSpacePy
 from BaseSpacePy.api.BaseSpaceAPI import BaseSpaceAPI
@@ -86,6 +89,23 @@ def pickSomething(selectionType, potentialSelectionsList):
                 continue
             outList.append(itemDict[int(picked)])
     return outList        
+    
+def fileExists(pathToFn, BSfn):
+    '''
+    input: a string of intended download location (path and filename) and a basespace file object
+    output: boolean 
+    
+    determines whether the file already exists on disk, comparing file name and size
+    todo: compare date of creation? 
+          establish preference by size/date rather than downloading all instances of a file 
+    '''
+    for LOCfn in glob.glob(pathToFn+"*"):
+        # if os.path.exists(LOCfn):    
+            # a file by this name exists on disk
+        if os.path.getsize(LOCfn) == BSfn.Size:
+            # the file on disk is the same size as the file in cloud
+            return True
+    return False     
     
 def warning(message):
     print("WARNING!")
