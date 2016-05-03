@@ -30,6 +30,8 @@ def downloadProjectFastq(project, myAPI, dryRun, samples=[], force=False, qp=Que
             tmpPath = str(project).replace(" ","_") + "/" + pathFromFile(fn, myAPI) + "partial/"            
             if not os.path.exists(savePath):
                 os.makedirs(savePath)
+            if not os.path.exists(tmpPath):
+                os.makedirs(tmpPath)
             pathToFn = os.path.join(savePath, fn.Name)
             if not force and fileExists(pathToFn, fn):
                 print("already have " + savePath + fn.Name + ". Skipping...")
@@ -44,7 +46,7 @@ def downloadProjectFastq(project, myAPI, dryRun, samples=[], force=False, qp=Que
                 print(os.path.join(savePath, fn.Name))
                 fn.downloadFile(myAPI, tmpPath)
                 shutil.move(os.path.join(tmpPath,fn.Path) , os.path.join(savePath,fn.Name) )
-    if not os.listdir(tmpPath):
+    if os.path.exists(tmpPath) and not os.listdir(tmpPath):
         os.rmdir(tmpPath)                            
     print( humanFormat(totalSize) + '\t' + str(project) )
     return totalSize
@@ -71,21 +73,27 @@ def downloadProjectBam(project, myAPI, dryRun, samples=[], force=False, qp=Query
                 print(humanFormat(thisSize) + '\t' + fn.Name)
                 continue
             savePath = str(project).replace(" ","_") + "/" + pathFromFile(fn, myAPI)
+            tmpPath = str(project).replace(" ","_") + "/" + pathFromFile(fn, myAPI) + "partial/"
             if not os.path.exists(savePath):
                 os.makedirs(savePath)
+            if not os.path.exists(tmpPath):
+                os.makedirs(tmpPath)
             pathToFn = os.path.join(savePath, fn.Name)
-            while fileExists(os.path.join(savePath, fn.Name)):
-                # if the path exists, append this string to the end to avoid overwriting
-                counter = 1
-                fn.Name = os.path.basename(fn.Path) + "." + str(counter)
-                counter += 1 
-            print(pathToFn)
             if not force and fileExists(pathToFn, fn):
                 print("already have " + savePath + "/" + fn.Name + ". Skipping...")
                 continue
             else:
+                while os.path.exists(os.path.join(savePath, fn.Name)):
+                    # if the path exists, append this string to the end to avoid overwriting
+                    counter = 1
+                    fn.Name = os.path.basename(fn.Path) + "." + str(counter)
+                    counter += 1 
+                print(os.path.join(savePath, fn.Name))
                 totalSize += thisSize
                 fn.downloadFile(myAPI, savePath)
+                shutil.move(os.path.join(tmpPath,fn.Path) , os.path.join(savePath,fn.Name) )
+    if os.path.exists(tmpPath) and not os.listdir(tmpPath):
+        os.rmdir(tmpPath)        
     print( humanFormat(totalSize) + '\t' + str(project) )
     return totalSize
     

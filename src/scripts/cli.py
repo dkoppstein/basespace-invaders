@@ -2,7 +2,7 @@ from __future__ import print_function
 from pdb import set_trace as stop
 import os
 import argparse
-#import logging
+import pandas as pd 
 from collections import defaultdict
 #logging.basicConfig()
 
@@ -16,7 +16,7 @@ from Util import *
 #Individual download functions 
 from run_folders import downloadRun
 from project_folders import downloadProjectBam, downloadProjectFastq
-
+from metadatas import downloadProjectMetadata
 def CLI(myAPI, inProjects, inRuns, dryRun, force):
     '''
     command line interface with the program
@@ -31,10 +31,10 @@ def CLI(myAPI, inProjects, inRuns, dryRun, force):
         scope = raw_input("select projects [p], samples [s], or runs [r]: ")
     if scope == 'p' or scope == 's':
         projects = pickSomething("project(s)", inProjects)
-        filetype = raw_input("bam [b] or fastq [f]: ")
-        while filetype not in ['b', 'f']:
+        filetype = raw_input("bam [b], fastq [f], or metadata [m]: ")
+        while filetype not in ['b', 'f', 'm']:
             print("invalid selection")
-            filetype = raw_input("bam [b] or fastq [f]: ")
+            filetype = raw_input("bam [b], fastq [f], or metadata [m]: ")
        
         if filetype == "b":
             if scope == 'p':
@@ -54,6 +54,18 @@ def CLI(myAPI, inProjects, inRuns, dryRun, force):
                 for project in projects:
                     samples = pickSomething("sample(s)", project.getSamples(myAPI, qp))
                     TotalSize += downloadProjectFastq(project, myAPI, dryRun, force=force, samples=samples)
+        elif filetype == "m":
+            fullSampleMetadata = pd.DataFrame()
+            fullFileMetadata   = pd.DataFrame()
+            for project in projects:
+                print(project)
+                smout, fmout = downloadProjectMetadata(project , myAPI)
+                fullSampleMetadata = fullSampleMetadata.append(smout)
+                fullFileMetadata   = fullFileMetadata.append(fmout)        
+            fullSampleMetadata.to_csv('fullSampleMetadata.txt',sep='\t',header=True,index=True)
+            fullFileMetadata.to_csv('fullFileMetadata.txt',sep='\t',header=True,index=True)
+            stop()
+            TotalSize = fullFileMetadata['Size'].sum()            
         if len(projects) > 1:
             print(humanFormat(TotalSize) + "\tTotal")
 

@@ -1,6 +1,7 @@
 from __future__ import print_function
 import os
 import glob
+import datetime 
 from pdb import set_trace as stop
 #BaseSpace API imports
 import BaseSpacePy
@@ -105,7 +106,33 @@ def fileExists(pathToFn, BSfn):
         if os.path.getsize(LOCfn) == BSfn.Size:
             # the file on disk is the same size as the file in cloud
             return True
-    return False     
+    return False    
+    
+def pullMetadata(bsobj):
+    '''
+    input: a basespace object
+    output: a dictionary of metadatas 
+    
+    leverages the fact that basespace objects have a consistent scheme for metadata.
+    extracts all present metadata and returns in in key,value format as a dictionary
+    '''     
+    validMetadataTypes = [str, int, datetime.datetime ]
+    metadata = dict()
+    for key,value in bsobj.__dict__.items():
+        if type(value) in validMetadataTypes and not key.startswith('__'):
+            metadata[key] = value
+    for key in dir(bsobj):
+        value = getattr(bsobj,key)
+        if type(value) in validMetadataTypes and not key.startswith('__') and key not in metadata.keys():
+            # good metadata 
+            metadata[key] = value
+    if hasattr(bsobj,'swaggerTypes'):
+        for key in getattr(bsobj, 'swaggerTypes').keys():
+            if hasattr(bsobj, key):
+                value = getattr(bsobj,key)
+                if type(value) in validMetadataTypes and not key.startswith('__') and key not in metadata.keys():
+                    metadata[key] = value
+    return metadata 
     
 def warning(message):
     print("WARNING!")
