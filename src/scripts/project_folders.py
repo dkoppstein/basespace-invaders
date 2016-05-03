@@ -2,6 +2,7 @@ from __future__ import print_function
 from pdb import set_trace as stop
 import os
 import argparse
+import shutil 
 #BaseSpace API imports
 from BaseSpacePy.api.BaseSpaceAPI import BaseSpaceAPI
 from BaseSpacePy.api.BaseSpaceAPI import QueryParameters
@@ -26,6 +27,7 @@ def downloadProjectFastq(project, myAPI, dryRun, samples=[], force=False, qp=Que
                 print(humanFormat(thisSize) + '\t' + fn.Name)
                 continue
             savePath = str(project).replace(" ","_") + "/" + pathFromFile(fn, myAPI)
+            tmpPath = str(project).replace(" ","_") + "/" + pathFromFile(fn, myAPI) + "partial/"            
             if not os.path.exists(savePath):
                 os.makedirs(savePath)
             pathToFn = os.path.join(savePath, fn.Name)
@@ -40,7 +42,10 @@ def downloadProjectFastq(project, myAPI, dryRun, samples=[], force=False, qp=Que
                     counter += 1 
                 totalSize += thisSize
                 print(os.path.join(savePath, fn.Name))
-                fn.downloadFile(myAPI, savePath)
+                fn.downloadFile(myAPI, tmpPath)
+                shutil.move(os.path.join(tmpPath,fn.Path) , os.path.join(savePath,fn.Name) )
+    if not os.listdir(tmpPath):
+        os.rmdir(tmpPath)                            
     print( humanFormat(totalSize) + '\t' + str(project) )
     return totalSize
 
