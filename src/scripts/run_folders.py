@@ -72,8 +72,9 @@ def main():
     for lostRun in set(args.run) - set([str(x) for x in userRuns]):
         warning("cannot find " + str(lostRun))
     TotalSize = 0
+    userFiles=args.file
     for run in userRuns:
-        TotalSize += downloadRun(run, myAPI, args.dry, files=args.file, force=args.force)
-    
+        # must create a copy of userFiles or the downloadRun function will strip entries from this instance of the list
+        TotalSize += downloadRun(run, myAPI, args.dry, files=[x for x in userFiles], force=args.force)
 if __name__=="__main__":
     main()

@@ -2,7 +2,10 @@ from __future__ import print_function
 from pdb import set_trace as stop
 import os
 import argparse
-import pandas as pd 
+try:
+    import pandas as pd
+except ImportError:
+    raise Warning("cannot parse metadata without Pandas for python")
 from collections import defaultdict
 #logging.basicConfig()
 
@@ -54,7 +57,7 @@ def CLI(myAPI, inProjects, inRuns, dryRun, force):
                 for project in projects:
                     samples = pickSomething("sample(s)", project.getSamples(myAPI, qp))
                     TotalSize += downloadProjectFastq(project, myAPI, dryRun, force=force, samples=samples)
-        elif filetype == "m":
+        elif filetype == "m":            
             fullSampleMetadata = pd.DataFrame()
             fullFileMetadata   = pd.DataFrame()
             for project in projects:

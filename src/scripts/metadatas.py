@@ -3,7 +3,10 @@ from pdb import set_trace as stop
 import os
 import argparse
 import shutil 
-import pandas as pd 
+try:
+    import pandas as pd
+except ImportError:
+    raise Warning("cannot parse metadata without Pandas for python") 
 #BaseSpace API imports
 from BaseSpacePy.api.BaseSpaceAPI import BaseSpaceAPI
 from BaseSpacePy.api.BaseSpaceAPI import QueryParameters
