@@ -58,17 +58,17 @@ def CLI(myAPI, inProjects, inRuns, dryRun, force):
                     samples = pickSomething("sample(s)", project.getSamples(myAPI, qp))
                     TotalSize += downloadProjectFastq(project, myAPI, dryRun, force=force, samples=samples)
         elif filetype == "m":            
-            fullSampleMetadata = pd.DataFrame()
-            fullFileMetadata   = pd.DataFrame()
+            # fullSampleMetadata = pd.DataFrame()
+            # fullFileMetadata   = pd.DataFrame()
             for project in projects:
                 print(project)
                 smout, fmout = downloadProjectMetadata(project , myAPI)
-                fullSampleMetadata = fullSampleMetadata.append(smout)
-                fullFileMetadata   = fullFileMetadata.append(fmout)        
-            fullSampleMetadata.to_csv('fullSampleMetadata.txt',sep='\t',header=True,index=True)
-            fullFileMetadata.to_csv('fullFileMetadata.txt',sep='\t',header=True,index=True)
-            stop()
-            TotalSize = fullFileMetadata['Size'].sum()            
+                # fullSampleMetadata = fullSampleMetadata.append(smout)
+                # fullFileMetadata   = fullFileMetadata.append(fmout)        
+            # fullSampleMetadata.to_csv('fullSampleMetadata.txt',sep='\t',header=True,index=True)
+            # fullFileMetadata.to_csv('fullFileMetadata.txt',sep='\t',header=True,index=True)
+            # stop()
+            # TotalSize = fullFileMetadata['Size'].sum()            
         if len(projects) > 1:
             print(humanFormat(TotalSize) + "\tTotal")
 
@@ -84,6 +84,10 @@ def CLI(myAPI, inProjects, inRuns, dryRun, force):
             finished = raw_input("finished? (y/n): ")
     if finished == "n":
         CLI(myAPI, inProjects, inRuns, dryRun, force)
+    # else:
+    #     timestamp = str(datetime.datetime.today()).replace(' ','_') 
+    #     fullSampleMetadata.to_csv('fullSampleMetadata.'+ timestamp +'.txt',sep='\t',header=True,index=False)
+    #     fullFileMetadata.to_csv('fullFileMetadata.'+ timestamp +'.txt',sep='\t',header=True,index=False)
     
 def main():
     parser = argparse.ArgumentParser()

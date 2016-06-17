@@ -8,6 +8,8 @@ from BaseSpacePy.api.BaseSpaceAPI import BaseSpaceAPI
 from BaseSpacePy.api.BaseSpaceAPI import QueryParameters
 #Aggregate of local utility functions
 from Util import *
+#Individual download functions
+from metadatas import downloadProjectMetadata
 
 def downloadProjectFastq(project, myAPI, dryRun, samples=[], force=False, qp=QueryParameters.QueryParameters({'Limit':1024})):
     totalSize = 0
@@ -56,7 +58,9 @@ def downloadProjectFastq(project, myAPI, dryRun, samples=[], force=False, qp=Que
                 shutil.move(os.path.join(tmpPath,os.path.split(fn.Path)[1] ) , os.path.join(savePath,fn.Name) )
         if os.path.exists(tmpPath) and not os.listdir(tmpPath):
             # delete the temp directory if it is empty 
-            os.rmdir(tmpPath)                            
+            os.rmdir(tmpPath)         
+    if not dryRun:
+        downloadProjectMetadata(project, myAPI, samples=samples, outdir=savePath)
     print( humanFormat(totalSize) + '\t' + str(project) )
     return totalSize
 
@@ -108,7 +112,9 @@ def downloadProjectBam(project, myAPI, dryRun, samples=[], force=False, qp=Query
                 fn.downloadFile(myAPI, tmpPath)
                 shutil.move(os.path.join(tmpPath, os.path.split(fn.Path)[1] ) , os.path.join(savePath,fn.Name) )
         if os.path.exists(tmpPath) and not os.listdir(tmpPath):
-            os.rmdir(tmpPath)        
+            os.rmdir(tmpPath)    
+    if not dryRun:
+        downloadProjectMetadata(project, myAPI, samples=samples, outdir=savePath)
     print( humanFormat(totalSize) + '\t' + str(project) )
     return totalSize
     

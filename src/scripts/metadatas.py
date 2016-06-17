@@ -3,6 +3,7 @@ from pdb import set_trace as stop
 import os
 import argparse
 import shutil 
+import datetime
 try:
     import pandas as pd
 except ImportError:
@@ -33,6 +34,12 @@ def downloadProjectMetadata(project, myAPI, samples=[], qp=QueryParameters.Query
             thisFileMeta['SID'] = str(sample)
             fileMetadata = fileMetadata.append(thisFileMeta)
             findx += 1
+    timestamp = str(datetime.datetime.today()).replace(' ','_') 
+    savePath = str(project).replace(" ","_") + "/" + pathFromFile(fns[0], myAPI) 
+    if not os.path.exists(savePath):
+        os.makedirs(savePath)      
+    sampleMetadata.to_csv( os.path.join(savePath, str(project) + '_SampleMetadata.'+ timestamp +'.txt'),sep='\t',header=True,index=False)
+    fileMetadata.to_csv( os.path.join(savePath, str(project) + '_FileMetadata.'+ timestamp +'.txt'),sep='\t',header=True,index=False) 
     return sampleMetadata, fileMetadata 
 
 def main():
