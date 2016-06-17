@@ -18,6 +18,12 @@ def downloadProjectFastq(project, myAPI, dryRun, samples=[], force=False, qp=Que
         samples = stringsToBSObj(project.getSamples(myAPI, qp), samples)
     for sample in samples:
         fns = sample.getFiles(myAPI, qp)
+        savePath = str(project).replace(" ","_") + "/" + pathFromFile(fns[0], myAPI)
+        tmpPath = str(project).replace(" ","_") + "/" + pathFromFile(fns[0], myAPI) + "/partial/"
+        if not os.path.exists(savePath):
+            os.makedirs(savePath)
+        if not os.path.exists(tmpPath):
+            os.makedirs(tmpPath)
         for fn in fns:
             thisSize = fn.__dict__['Size']
             # skip addition until we know this will be downloaded
@@ -26,12 +32,14 @@ def downloadProjectFastq(project, myAPI, dryRun, samples=[], force=False, qp=Que
                 totalSize += thisSize
                 print(humanFormat(thisSize) + '\t' + fn.Name)
                 continue
-            savePath = str(project).replace(" ","_") + "/" + pathFromFile(fn, myAPI)
-            tmpPath = str(project).replace(" ","_") + "/" + pathFromFile(fn, myAPI) + "partial/"            
-            if not os.path.exists(savePath):
-                os.makedirs(savePath)
-            if not os.path.exists(tmpPath):
-                os.makedirs(tmpPath)
+            # savePath = str(project).replace(" ","_") + "/" + pathFromFile(fn, myAPI)
+            # tmpPath = str(project).replace(" ","_") + "/" + pathFromFile(fn, myAPI) + "partial/"
+            # files are downloaded by ID so we have no control to rename them until they are on disk
+            # download to a temp dir and rename accordingly when finished with this file             
+            # if not os.path.exists(savePath):
+            #     os.makedirs(savePath)
+            # if not os.path.exists(tmpPath):
+            #     os.makedirs(tmpPath)
             pathToFn = os.path.join(savePath, fn.Name)
             if not force and fileExists(pathToFn, fn):
                 print("already have " + savePath + fn.Name + ". Skipping...")
@@ -45,9 +53,10 @@ def downloadProjectFastq(project, myAPI, dryRun, samples=[], force=False, qp=Que
                 totalSize += thisSize
                 print(os.path.join(savePath, fn.Name))
                 fn.downloadFile(myAPI, tmpPath)
-                shutil.move(os.path.join(tmpPath,fn.Path) , os.path.join(savePath,fn.Name) )
-    if os.path.exists(tmpPath) and not os.listdir(tmpPath):
-        os.rmdir(tmpPath)                            
+                shutil.move(os.path.join(tmpPath,os.path.split(fn.Path)[1] ) , os.path.join(savePath,fn.Name) )
+        if os.path.exists(tmpPath) and not os.listdir(tmpPath):
+            # delete the temp directory if it is empty 
+            os.rmdir(tmpPath)                            
     print( humanFormat(totalSize) + '\t' + str(project) )
     return totalSize
 
@@ -65,6 +74,12 @@ def downloadProjectBam(project, myAPI, dryRun, samples=[], force=False, qp=Query
             #WIP
             print("\n\nuser picked particular samples, but this isn't coded in yet\n")
             stop()
+        savePath = str(project).replace(" ","_") + "/" + pathFromFile(bams[0], myAPI)
+        tmpPath = str(project).replace(" ","_") + "/" + pathFromFile(bams[0], myAPI) + "/partial/"
+        if not os.path.exists(savePath):
+            os.makedirs(savePath)
+        if not os.path.exists(tmpPath):
+            os.makedirs(tmpPath)
         for fn in bams:
             thisSize = fn.__dict__['Size']
             # totalSize += thisSize
@@ -72,12 +87,12 @@ def downloadProjectBam(project, myAPI, dryRun, samples=[], force=False, qp=Query
                 totalSize += thisSize
                 print(humanFormat(thisSize) + '\t' + fn.Name)
                 continue
-            savePath = str(project).replace(" ","_") + "/" + pathFromFile(fn, myAPI)
-            tmpPath = str(project).replace(" ","_") + "/" + pathFromFile(fn, myAPI) + "partial/"
-            if not os.path.exists(savePath):
-                os.makedirs(savePath)
-            if not os.path.exists(tmpPath):
-                os.makedirs(tmpPath)
+            # savePath = str(project).replace(" ","_") + "/" + pathFromFile(fn, myAPI)
+            # tmpPath = str(project).replace(" ","_") + "/" + pathFromFile(fn, myAPI) + "partial/"
+            # if not os.path.exists(savePath):
+            #     os.makedirs(savePath)
+            # if not os.path.exists(tmpPath):
+            #     os.makedirs(tmpPath)
             pathToFn = os.path.join(savePath, fn.Name)
             if not force and fileExists(pathToFn, fn):
                 print("already have " + savePath + "/" + fn.Name + ". Skipping...")
@@ -90,10 +105,10 @@ def downloadProjectBam(project, myAPI, dryRun, samples=[], force=False, qp=Query
                     counter += 1 
                 print(os.path.join(savePath, fn.Name))
                 totalSize += thisSize
-                fn.downloadFile(myAPI, savePath)
-                shutil.move(os.path.join(tmpPath,fn.Path) , os.path.join(savePath,fn.Name) )
-    if os.path.exists(tmpPath) and not os.listdir(tmpPath):
-        os.rmdir(tmpPath)        
+                fn.downloadFile(myAPI, tmpPath)
+                shutil.move(os.path.join(tmpPath, os.path.split(fn.Path)[1] ) , os.path.join(savePath,fn.Name) )
+        if os.path.exists(tmpPath) and not os.listdir(tmpPath):
+            os.rmdir(tmpPath)        
     print( humanFormat(totalSize) + '\t' + str(project) )
     return totalSize
     
@@ -124,7 +139,7 @@ def main():
     for project in userProjs:
         TotalSize += download(project , myAPI, args.dry, force=args.force)
     if len(userProjs) > 1:
-            print(humanFormat(totalSize) + "\tTotal")
+            print(humanFormat(TotalSize) + "\tTotal")
         
 if __name__ == "__main__":
     main()

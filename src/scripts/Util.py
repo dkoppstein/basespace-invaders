@@ -2,7 +2,7 @@ from __future__ import print_function
 import os
 import glob
 import datetime 
-from pdb import set_trace as stop
+from pdb import set_trace as stop 
 #BaseSpace API imports
 import BaseSpacePy
 from BaseSpacePy.api.BaseSpaceAPI import BaseSpaceAPI
@@ -13,10 +13,11 @@ def pathFromFile(fn, myAPI):
     input: basespace file object, basespace API instance 
     return: save path, based on file location in amazon cloud
     attempts to retain as much path information as possible
-    '''
-    url = fn.getFileS3metadata(myAPI)['url']
+    '''    
+    url = fn.getFileUrl(myAPI) # fn.getFileS3metadata(myAPI)['url'] <-- can throw a urllib2.HTTPError if the file is empty 
     savePath = url.split('amazonaws.com/')[1].split('?AWSA')[0]
     savePath = "/".join(savePath.split('/')[1:-1])
+    # stop()
     return savePath
 
 def stringsToBSObj(BSlist, USRlist):

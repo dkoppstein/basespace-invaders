@@ -59,7 +59,7 @@ def main():
     parser.add_argument('-p', '--profile', default="DEFAULT", help="the .basespacepy.cfg profile to load")
     parser.add_argument('-d', '--dry', action='store_true', default=False, help="dry run; return size of selected items")
     parser.add_argument('-f', '--force', action='store_true', default=False, help="force overwrite; otherwise cat counters on new filenames")
-    parser.add_argument('-r', '--run', required=True, nargs="+", help="run name to download; can accept multiple values")
+    parser.add_argument('-r', '--run', default=[], nargs="+", help="run name to download; can accept multiple values")
     parser.add_argument('--file', default=[], nargs="+", help="specific file(s) to pull from each run; can accept multiple values")
 
     args = parser.parse_args()
@@ -69,6 +69,8 @@ def main():
 
     runs = user.getRuns(myAPI, qp)
     userRuns = stringsToBSObj(runs, args.run)
+    if not args.run:
+        userRuns = runs
     for lostRun in set(args.run) - set([str(x) for x in userRuns]):
         warning("cannot find " + str(lostRun))
     TotalSize = 0
