@@ -60,7 +60,7 @@ def downloadProjectFastq(project, myAPI, dryRun, samples=[], force=False, qp=Que
             # delete the temp directory if it is empty 
             os.rmdir(tmpPath)         
     if not dryRun:
-        downloadProjectMetadata(project, myAPI, samples=samples, outdir=savePath)
+        downloadProjectMetadata(project, myAPI, samples=samples)
     print( humanFormat(totalSize) + '\t' + str(project) )
     return totalSize
 
