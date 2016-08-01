@@ -2,6 +2,7 @@ from __future__ import print_function
 from pdb import set_trace as stop
 import os
 import argparse
+import datetime
 try:
     import pandas as pd
 except ImportError:
@@ -65,9 +66,10 @@ def CLI(myAPI, inProjects, inRuns, dryRun, force):
                 smout, fmout = downloadProjectMetadata(project , myAPI)
                 fullSampleMetadata = fullSampleMetadata.append(smout)
                 fullFileMetadata   = fullFileMetadata.append(fmout)        
-            fullSampleMetadata.to_csv('fullSampleMetadata.txt',sep='\t',header=True,index=True)
-            fullFileMetadata.to_csv('fullFileMetadata.txt',sep='\t',header=True,index=True)
-            stop()
+            thisInstant = str(datetime.datetime.today()).replace(' ',';')
+	    fullSampleMetadata.to_csv('fullSampleMetadata.'+thisInstant+'.txt',sep='\t',header=True,index=True)
+            fullFileMetadata.to_csv('fullFileMetadata.'+thisInstant+'.txt',sep='\t',header=True,index=True)
+            #stop()
             TotalSize = fullFileMetadata['Size'].sum()            
         if len(projects) > 1:
             print(humanFormat(TotalSize) + "\tTotal")

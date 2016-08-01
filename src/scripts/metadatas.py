@@ -56,7 +56,8 @@ def main():
         smout, fmout = downloadProjectMetadata(project , myAPI)
         fullSampleMetadata = fullSampleMetadata.append(smout)
         fullFileMetadata   = fullFileMetadata.append(fmout)        
-    fullSampleMetadata.to_csv('fullSampleMetadata.txt',sep='\t',header=True,index=False)
-    fullFileMetadata.to_csv('fullFileMetadata.txt',sep='\t',header=True,index=False)    
+    thisInstant = str(datetime.datetime.today()).replace(' ',';')
+    fullSampleMetadata.to_csv('fullSampleMetadata.'+thisInstant+'.txt',sep='\t',header=True,index=False)
+    fullFileMetadata.to_csv('fullFileMetadata.'+thisInstant+'.txt',sep='\t',header=True,index=False)    
 if __name__ == "__main__":
     main()    
